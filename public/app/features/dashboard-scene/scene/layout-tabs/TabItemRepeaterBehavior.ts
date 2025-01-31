@@ -13,7 +13,6 @@ import {
 
 import { getCloneKey, isClonedKeyOf } from '../../utils/clone';
 import { getMultiVariableValues } from '../../utils/utils';
-import { DefaultGridLayoutManager } from '../layout-default/DefaultGridLayoutManager';
 import { DashboardRepeatsProcessedEvent } from '../types';
 
 import { TabItem } from './TabItem';
@@ -64,7 +63,7 @@ export class TabItemRepeaterBehavior extends SceneObjectBase<TabItemRepeaterBeha
     return layout;
   }
 
-  public performRepeat(force = false) {
+  public performRepeat() {
     if (this._variableDependency.hasDependencyInLoadingState()) {
       return;
     }
@@ -86,7 +85,7 @@ export class TabItemRepeaterBehavior extends SceneObjectBase<TabItemRepeaterBeha
     const { values, texts } = getMultiVariableValues(variable);
 
     // Do nothing if values are the same
-    if (isEqual(this._prevRepeatValues, values) && !force) {
+    if (isEqual(this._prevRepeatValues, values)) {
       return;
     }
 
@@ -113,12 +112,6 @@ export class TabItemRepeaterBehavior extends SceneObjectBase<TabItemRepeaterBeha
 
       const tabCloneKey = getCloneKey(tabToRepeat.state.key!, tabIndex);
 
-      const layout = tabContent.clone();
-
-      if (layout instanceof DefaultGridLayoutManager) {
-        layout.state.grid.setState({ isDraggable: false });
-      }
-
       tabClone.setState({
         key: tabCloneKey,
         $variables: new SceneVariableSet({
@@ -132,7 +125,7 @@ export class TabItemRepeaterBehavior extends SceneObjectBase<TabItemRepeaterBeha
             }),
           ],
         }),
-        layout,
+        layout: tabContent.cloneLayout?.(tabCloneKey, isSourceTab),
       });
 
       this._clonedTabs.push(tabClone);
@@ -167,6 +160,6 @@ function updateLayout(layout: TabsLayoutManager, tabs: TabItem[], tabKey: string
   layout.setState({ tabs: [...allTabs.slice(0, index), ...tabs, ...allTabs.slice(index + 1)] });
 }
 
-function getTabsFilterOutRepeatClones(layout: TabsLayoutManager, tabKey: string) {
+function getTabsFilterOutRepeatClones(layout: TabsLayoutManager, tabKey: string): TabItem[] {
   return layout.state.tabs.filter((tab) => !isClonedKeyOf(tab.state.key!, tabKey));
 }

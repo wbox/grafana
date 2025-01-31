@@ -1,3 +1,5 @@
+import { ReactNode } from 'react';
+
 import { BusEventWithPayload, RegistryItem } from '@grafana/data';
 import { SceneObject, VizPanel } from '@grafana/scenes';
 import { OptionsPaneCategoryDescriptor } from 'app/features/dashboard/components/PanelEditor/OptionsPaneCategoryDescriptor';
@@ -12,22 +14,9 @@ export interface DashboardLayoutManager extends SceneObject {
   isDashboardLayoutManager: true;
 
   /**
-   * Notify the layout manager that the edit mode has changed
-   * @param isEditing
+   * Gets the layout descriptor (which has the name and id)
    */
-  editModeChanged(isEditing: boolean): void;
-
-  /**
-   * Remove an element / panel
-   * @param element
-   */
-  removePanel(panel: VizPanel): void;
-
-  /**
-   * Creates a copy of an existing element and adds it to the layout
-   * @param element
-   */
-  duplicatePanel(panel: VizPanel): void;
+  getDescriptor(): LayoutRegistryItem;
 
   /**
    * Adds a new panel to the layout
@@ -35,14 +24,16 @@ export interface DashboardLayoutManager extends SceneObject {
   addPanel(panel: VizPanel): void;
 
   /**
-   * Add row
+   * Remove an element / panel
+   * @param panel
    */
-  addNewRow(): void;
+  removePanel(panel: VizPanel): void;
 
   /**
-   * Add tab
+   * Creates a copy of an existing element and adds it to the layout
+   * @param panel
    */
-  addNewTab(): void;
+  duplicatePanel(panel: VizPanel): void;
 
   /**
    * getVizPanels
@@ -50,8 +41,28 @@ export interface DashboardLayoutManager extends SceneObject {
   getVizPanels(): VizPanel[];
 
   /**
+   * Returns the highest panel id in the layout
+   */
+  getMaxPanelId(): number;
+
+  /**
+   * Add tab
+   */
+  addNewTab(): void;
+
+  /**
+   * Add row
+   */
+  addNewRow(): void;
+
+  /**
+   * Notify the layout manager that the edit mode has changed
+   * @param isEditing
+   */
+  editModeChanged?(isEditing: boolean): void;
+
+  /**
    * Turn into a save model
-   * @param saveModel
    */
   toSaveModel?(): any;
 
@@ -59,11 +70,6 @@ export interface DashboardLayoutManager extends SceneObject {
    * For dynamic panels that need to be viewed in isolation (SoloRoute)
    */
   activateRepeaters?(): void;
-
-  /**
-   * Gets the layout descriptor (which has the name and id)
-   */
-  getDescriptor(): LayoutRegistryItem;
 
   /**
    * Renders options and layout actions
@@ -76,11 +82,6 @@ export interface DashboardLayoutManager extends SceneObject {
    * @param isSource
    */
   cloneLayout?(ancestorKey: string, isSource: boolean): DashboardLayoutManager;
-
-  /**
-   * Returns the highest panel id in the layout
-   */
-  getMaxPanelId(): number;
 }
 
 export function isDashboardLayoutManager(obj: SceneObject): obj is DashboardLayoutManager {
@@ -123,14 +124,17 @@ export interface DashboardLayoutItem extends SceneObject {
    * Marks this object as a layout item
    */
   isDashboardLayoutItem: true;
+
   /**
    * Return layout item options (like repeat, repeat direction, etc for the default DashboardGridItem)
    */
   getOptions?(): OptionsPaneCategoryDescriptor;
+
   /**
    * When going into panel edit
    **/
   editingStarted?(): void;
+
   /**
    * When coming out of panel edit
    */
@@ -157,18 +161,21 @@ export interface EditableDashboardElement {
    * Marks this object as an element that can be selected and edited directly on the canvas
    */
   isEditableDashboardElement: true;
+
   /**
-   * Hook that returns edit pane optionsß
+   * The type name of the element
+   */
+  typeName: Readonly<string>;
+
+  /**
+   * Hook that returns edit pane options
    */
   useEditPaneOptions(): OptionsPaneCategoryDescriptor[];
-  /**
-   * Get the type name of the element
-   */
-  getTypeName(): string;
+
   /**
    * Panel Actions
    **/
-  renderActions?(): React.ReactNode;
+  renderActions?(): ReactNode;
 }
 
 export function isEditableDashboardElement(obj: object): obj is EditableDashboardElement {

@@ -883,6 +883,23 @@
       "subtitle": "Alert rules related to this dashboard"
     },
     "default-layout": {
+      "description": "The default grid layout",
+      "item-options": {
+        "repeat": {
+          "direction": {
+            "horizontal": "Horizontal",
+            "title": "Repeat direction",
+            "vertical": "Vertical"
+          },
+          "max": "Max per row",
+          "title": "Repeat options",
+          "variable": {
+            "description": "Repeat this panel for each value in the selected variable. This is not visible while in edit mode. You need to go back to dashboard and then update the variable or reload the dashboard.",
+            "title": "Repeat by variable"
+          }
+        }
+      },
+      "name": "Default grid",
       "row-actions": {
         "delete": "Delete row",
         "modal": {
@@ -984,20 +1001,67 @@
         "no-rules": "There are no alert rules linked to this panel."
       }
     },
+    "responsive-layout": {
+      "description": "CSS layout that adjusts to the available space",
+      "item-options": {
+        "hide-no-data": "Hide when no data",
+        "title": "Layout options"
+      },
+      "name": "Responsive grid",
+      "options": {
+        "columns": "Columns",
+        "fixed": "Fixed: {{size}}px",
+        "min": "Min: {{size}}px",
+        "one-column": "1 column",
+        "rows": "Rows",
+        "three-columns": "3 columns",
+        "two-columns": "2 columns"
+      }
+    },
     "rows-layout": {
+      "description": "Rows layout",
+      "name": "Rows",
       "row": {
+        "collapse": "Collapse row",
+        "expand": "Expand row",
+        "new": "New row"
+      },
+      "row-options": {
+        "height": {
+          "expand": "Expand",
+          "hide-row-header": "Hide row header",
+          "min": "Min",
+          "title": "Height"
+        },
         "repeat": {
-          "learn-more": "Learn more",
-          "warning": "Panels in this row use the {{SHARED_DASHBOARD_QUERY}} data source. These panels will reference the panel in the original row, not the ones in the repeated rows."
-        }
+          "title": "Repeat options",
+          "variable": {
+            "learn-more": "Learn more",
+            "title": "Variable",
+            "warning": "Panels in this row use the {{SHARED_DASHBOARD_QUERY}} data source. These panels will reference the panel in the original row, not the ones in the repeated rows."
+          }
+        },
+        "title": "Row options",
+        "title-option": "Title"
       }
     },
     "tabs-layout": {
+      "description": "Tabs layout",
+      "name": "Tabs",
       "tab": {
+        "new": "New tab"
+      },
+      "tab-options": {
         "repeat": {
-          "learn-more": "Learn more",
-          "warning": "Panels in this tab use the {{SHARED_DASHBOARD_QUERY}} data source. These panels will reference the panel in the original tab, not the ones in the repeated tabs."
-        }
+          "title": "Repeat options",
+          "variable": {
+            "learn-more": "Learn more",
+            "title": "Variable",
+            "warning": "Panels in this tab use the {{SHARED_DASHBOARD_QUERY}} data source. These panels will reference the panel in the original tab, not the ones in the repeated tabs."
+          }
+        },
+        "title": "Tab options",
+        "title-option": "Title"
       }
     },
     "toolbar": {

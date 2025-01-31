@@ -19,7 +19,7 @@ export function ElementEditPane({ element }: Props) {
       {element.renderActions && (
         <OptionsPaneCategory
           id="selected-item"
-          title={element.getTypeName()}
+          title={element.typeName}
           isOpenDefault={true}
           className={styles.noBorderTop}
         >

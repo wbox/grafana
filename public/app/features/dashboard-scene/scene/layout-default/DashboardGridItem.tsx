@@ -1,14 +1,10 @@
-import { css } from '@emotion/css';
 import { isEqual } from 'lodash';
-import { useMemo } from 'react';
 
-import { config } from '@grafana/runtime';
 import {
   VizPanel,
   SceneObjectBase,
   SceneGridLayout,
   SceneVariableSet,
-  SceneComponentProps,
   SceneGridItemStateLike,
   SceneGridItemLike,
   sceneGraph,
@@ -20,14 +16,15 @@ import {
   SceneVariable,
   SceneVariableDependencyConfigLike,
 } from '@grafana/scenes';
-import { GRID_CELL_HEIGHT, GRID_CELL_VMARGIN, GRID_COLUMN_COUNT } from 'app/core/constants';
+import { GRID_COLUMN_COUNT } from 'app/core/constants';
 import { OptionsPaneCategoryDescriptor } from 'app/features/dashboard/components/PanelEditor/OptionsPaneCategoryDescriptor';
 
 import { getCloneKey } from '../../utils/clone';
-import { getMultiVariableValues, getQueryRunnerFor } from '../../utils/utils';
+import { getMultiVariableValues } from '../../utils/utils';
 import { DashboardLayoutItem, DashboardRepeatsProcessedEvent } from '../types';
 
 import { getDashboardGridItemOptions } from './DashboardGridItemEditor';
+import { DashboardGridItemRenderer } from './DashboardGridItemRenderer';
 
 export interface DashboardGridItemState extends SceneGridItemStateLike {
   body: VizPanel;
@@ -44,8 +41,13 @@ export class DashboardGridItem
   extends SceneObjectBase<DashboardGridItemState>
   implements SceneGridItemLike, DashboardLayoutItem
 {
-  private _prevRepeatValues?: VariableValueSingle[];
+  public static Component = DashboardGridItemRenderer;
+
   protected _variableDependency = new DashboardGridItemVariableDependencyHandler(this);
+
+  public readonly isDashboardLayoutItem = true;
+
+  private _prevRepeatValues?: VariableValueSingle[];
 
   public constructor(state: DashboardGridItemState) {
     super(state);
@@ -60,9 +62,6 @@ export class DashboardGridItem
     }
   }
 
-  /**
-   * Uses the current repeat item count to calculate the user intended desired itemHeight
-   */
   private _handleGridResize(newState: DashboardGridItemState, prevState: DashboardGridItemState) {
     const itemCount = this.state.repeatedPanels?.length ?? 1;
     const stateChange: Partial<DashboardGridItemState> = {};
@@ -73,8 +72,7 @@ export class DashboardGridItem
     }
 
     if (this.getRepeatDirection() === 'v') {
-      const itemHeight = Math.ceil(newState.height! / itemCount);
-      stateChange.itemHeight = itemHeight;
+      stateChange.itemHeight = Math.ceil(newState.height! / itemCount);
     } else {
       const rowCount = Math.ceil(itemCount / this.getMaxPerRow());
       stateChange.itemHeight = Math.ceil(newState.height! / rowCount);
@@ -82,6 +80,37 @@ export class DashboardGridItem
 
     if (stateChange.itemHeight !== this.state.itemHeight) {
       this.setState(stateChange);
+    }
+  }
+
+  public getClassName(): string {
+    return this.state.variableName ? 'panel-repeater-grid-item' : '';
+  }
+
+  public getOptions(): OptionsPaneCategoryDescriptor {
+    return getDashboardGridItemOptions(this);
+  }
+
+  public editingStarted() {
+    if (!this.state.variableName) {
+      return;
+    }
+
+    if (this.state.repeatedPanels?.length ?? 0 > 1) {
+      this.state.body.setState({
+        $variables: this.state.repeatedPanels![0].state.$variables?.clone(),
+        $data: this.state.repeatedPanels![0].state.$data?.clone(),
+      });
+    }
+  }
+
+  public editingCompleted(withChanges: boolean) {
+    if (withChanges) {
+      this._prevRepeatValues = undefined;
+    }
+
+    if (this.state.variableName && this.state.repeatDirection === 'h' && this.state.width !== GRID_COLUMN_COUNT) {
+      this.setState({ width: GRID_COLUMN_COUNT });
     }
   }
 
@@ -109,8 +138,7 @@ export class DashboardGridItem
 
     if (isEqual(this._prevRepeatValues, values)) {
       // In some cases, like for variables that depend on time range, the panel query runners are waiting for the top level variable to complete
-      // So even when there was no change in the variable value (like in this case) we need to notify the query runners that the variable has completed it's update
-      //    this.notifyRepeatedPanelsWaitingForVariables(variable);
+      // So even when there was no change in the variable value (like in this case) we need to notify the query runners that the variable has completed its update
       return;
     }
 
@@ -160,7 +188,7 @@ export class DashboardGridItem
 
     this.setState(stateChange);
 
-    // In case we updated our height the grid layout needs to be update
+    // In case we updated our height the grid layout needs to be updated
     if (prevHeight !== this.state.height) {
       const layout = sceneGraph.getLayout(this);
       if (layout instanceof SceneGridLayout) {
@@ -188,57 +216,6 @@ export class DashboardGridItem
     this.setState(stateUpdate);
   }
 
-  /**
-   * DashboardLayoutItem interface start
-   */
-  public isDashboardLayoutItem: true = true;
-
-  /**
-   * Returns options for panel edit
-   */
-  public getOptions(): OptionsPaneCategoryDescriptor {
-    return getDashboardGridItemOptions(this);
-  }
-
-  /**
-   * Logic to prep panel for panel edit
-   */
-  public editingStarted() {
-    if (!this.state.variableName) {
-      return;
-    }
-
-    if (this.state.repeatedPanels?.length ?? 0 > 1) {
-      this.state.body.setState({
-        $variables: this.state.repeatedPanels![0].state.$variables?.clone(),
-        $data: this.state.repeatedPanels![0].state.$data?.clone(),
-      });
-    }
-  }
-
-  /**
-   * Going back to dashboards logic
-   * withChanges true if there where changes made while in panel edit
-   */
-  public editingCompleted(withChanges: boolean) {
-    if (withChanges) {
-      this._prevRepeatValues = undefined;
-    }
-
-    if (this.state.variableName && this.state.repeatDirection === 'h' && this.state.width !== GRID_COLUMN_COUNT) {
-      this.setState({ width: GRID_COLUMN_COUNT });
-    }
-  }
-
-  public notifyRepeatedPanelsWaitingForVariables(variable: SceneVariable) {
-    for (const panel of this.state.repeatedPanels ?? []) {
-      const queryRunner = getQueryRunnerFor(panel);
-      if (queryRunner) {
-        queryRunner.variableDependency?.variableUpdateCompleted(variable, false);
-      }
-    }
-  }
-
   public getMaxPerRow(): number {
     return this.state.maxPerRow ?? 4;
   }
@@ -247,39 +224,9 @@ export class DashboardGridItem
     return this.state.repeatDirection === 'v' ? 'v' : 'h';
   }
 
-  public getClassName() {
-    return this.state.variableName ? 'panel-repeater-grid-item' : '';
-  }
-
-  public isRepeated() {
+  public isRepeated(): boolean {
     return this.state.variableName !== undefined;
   }
-
-  public static Component = ({ model }: SceneComponentProps<DashboardGridItem>) => {
-    const { repeatedPanels, itemHeight, variableName, body } = model.useState();
-    const itemCount = repeatedPanels?.length ?? 0;
-    const layoutStyle = useLayoutStyle(model.getRepeatDirection(), itemCount, model.getMaxPerRow(), itemHeight ?? 10);
-
-    if (!variableName) {
-      if (body instanceof VizPanel) {
-        return <body.Component model={body} key={body.state.key} />;
-      }
-    }
-
-    if (!repeatedPanels) {
-      return null;
-    }
-
-    return (
-      <div className={layoutStyle}>
-        {repeatedPanels.map((panel) => (
-          <div className={itemStyle} key={panel.state.key}>
-            <panel.Component model={panel} key={panel.state.key} />
-          </div>
-        ))}
-      </div>
-    );
-  };
 }
 
 export class DashboardGridItemVariableDependencyHandler implements SceneVariableDependencyConfigLike {
@@ -297,7 +244,7 @@ export class DashboardGridItemVariableDependencyHandler implements SceneVariable
     return this._gridItem.state.variableName === name;
   }
 
-  variableUpdateCompleted(variable: SceneVariable, hasChanged: boolean): void {
+  variableUpdateCompleted(variable: SceneVariable) {
     if (this._gridItem.state.variableName === variable.state.name) {
       /**
        * We do not really care if the variable has changed or not as we do an equality check in performRepeat
@@ -309,51 +256,3 @@ export class DashboardGridItemVariableDependencyHandler implements SceneVariable
     }
   }
 }
-
-function useLayoutStyle(direction: RepeatDirection, itemCount: number, maxPerRow: number, itemHeight: number) {
-  return useMemo(() => {
-    const theme = config.theme2;
-
-    // In mobile responsive layout we have to calculate the absolute height
-    const mobileHeight = itemHeight * GRID_CELL_HEIGHT * itemCount + (itemCount - 1) * GRID_CELL_VMARGIN;
-
-    if (direction === 'h') {
-      const rowCount = Math.ceil(itemCount / maxPerRow);
-      const columnCount = Math.min(itemCount, maxPerRow);
-
-      return css({
-        display: 'grid',
-        height: '100%',
-        width: '100%',
-        gridTemplateColumns: `repeat(${columnCount}, 1fr)`,
-        gridTemplateRows: `repeat(${rowCount}, 1fr)`,
-        gridColumnGap: theme.spacing(1),
-        gridRowGap: theme.spacing(1),
-
-        [theme.breakpoints.down('md')]: {
-          display: 'flex',
-          flexDirection: 'column',
-          height: mobileHeight,
-        },
-      });
-    }
-
-    // Vertical is a bit simpler
-    return css({
-      display: 'flex',
-      height: '100%',
-      width: '100%',
-      flexDirection: 'column',
-      gap: theme.spacing(1),
-      [theme.breakpoints.down('md')]: {
-        height: mobileHeight,
-      },
-    });
-  }, [direction, itemCount, maxPerRow, itemHeight]);
-}
-
-const itemStyle = css({
-  display: 'flex',
-  flexGrow: 1,
-  position: 'relative',
-});

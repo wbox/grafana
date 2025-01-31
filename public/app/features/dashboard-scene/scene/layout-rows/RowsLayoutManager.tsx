@@ -3,7 +3,6 @@ import { css } from '@emotion/css';
 import { GrafanaTheme2 } from '@grafana/data';
 import {
   SceneComponentProps,
-  sceneGraph,
   SceneGridItemLike,
   SceneGridRow,
   SceneObjectBase,
@@ -11,14 +10,13 @@ import {
   VizPanel,
 } from '@grafana/scenes';
 import { useStyles2 } from '@grafana/ui';
+import { t } from 'app/core/internationalization';
 
 import { isClonedKey } from '../../utils/clone';
-import { getDashboardSceneFor } from '../../utils/utils';
-import { DashboardScene } from '../DashboardScene';
+import { getSelectedObject, switchLayout } from '../../utils/utils';
 import { DashboardGridItem } from '../layout-default/DashboardGridItem';
 import { DefaultGridLayoutManager } from '../layout-default/DefaultGridLayoutManager';
 import { RowRepeaterBehavior } from '../layout-default/RowRepeaterBehavior';
-import { ResponsiveGridLayoutManager } from '../layout-responsive-grid/ResponsiveGridLayoutManager';
 import { TabsLayoutManager } from '../layout-tabs/TabsLayoutManager';
 import { DashboardLayoutManager, LayoutRegistryItem } from '../types';
 
@@ -30,63 +28,37 @@ interface RowsLayoutManagerState extends SceneObjectState {
 }
 
 export class RowsLayoutManager extends SceneObjectBase<RowsLayoutManagerState> implements DashboardLayoutManager {
-  public isDashboardLayoutManager: true = true;
+  public static Component = RowsLayoutManagerRenderer;
 
-  public editModeChanged(isEditing: boolean): void {}
+  public readonly isDashboardLayoutManager = true;
 
-  public addPanel(vizPanel: VizPanel): void {
+  public getDescriptor(): LayoutRegistryItem {
+    return RowsLayoutManager.getDescriptor();
+  }
+
+  public addPanel(vizPanel: VizPanel) {
     // Try to add new panels to the selected row
-    const selectedObject = this.getSelectedObject();
+    const selectedObject = getSelectedObject(this);
     if (selectedObject instanceof RowItem) {
-      return selectedObject.onAddPanel(vizPanel);
+      return selectedObject.getLayout().addPanel(vizPanel);
     }
 
     // If we don't have selected row add it to the first row
     if (this.state.rows.length > 0) {
-      return this.state.rows[0].onAddPanel(vizPanel);
+      return this.state.rows[0].getLayout().addPanel(vizPanel);
     }
 
     // Otherwise fallback to adding a new row and a panel
     this.addNewRow();
-    this.state.rows[this.state.rows.length - 1].onAddPanel(vizPanel);
+    this.state.rows[this.state.rows.length - 1].getLayout().addPanel(vizPanel);
   }
 
-  public addNewRow(): void {
-    this.setState({
-      rows: [
-        ...this.state.rows,
-        new RowItem({
-          title: 'New row',
-          layout: ResponsiveGridLayoutManager.createEmpty(),
-        }),
-      ],
-    });
+  public removePanel(panel: VizPanel) {
+    this.state.rows.forEach((row) => row.getLayout().removePanel(panel));
   }
 
-  public addNewTab(): void {
-    const tabsLayout = TabsLayoutManager.createFromLayout(this);
-    tabsLayout.addNewTab();
-    getDashboardSceneFor(this).switchLayout(tabsLayout);
-  }
-
-  public getMaxPanelId(): number {
-    return Math.max(...this.state.rows.map((row) => row.getLayout().getMaxPanelId()));
-  }
-
-  public getNextPanelId(): number {
-    return 0;
-  }
-
-  public removePanel(panel: VizPanel) {}
-
-  public removeRow(row: RowItem) {
-    this.setState({
-      rows: this.state.rows.filter((r) => r !== row),
-    });
-  }
-
-  public duplicatePanel(panel: VizPanel): void {
-    throw new Error('Method not implemented.');
+  public duplicatePanel(panel: VizPanel) {
+    this.state.rows.forEach((row) => row.getLayout().duplicatePanel(panel));
   }
 
   public getVizPanels(): VizPanel[] {
@@ -100,46 +72,59 @@ export class RowsLayoutManager extends SceneObjectBase<RowsLayoutManagerState> i
     return panels;
   }
 
-  public getOptions() {
-    return [];
+  public getMaxPanelId(): number {
+    return Math.max(...this.state.rows.map((row) => row.getLayout().getMaxPanelId()));
+  }
+
+  public addNewTab() {
+    const tabsLayout = TabsLayoutManager.createFromLayout(this);
+    tabsLayout.addNewTab();
+    switchLayout(this, tabsLayout);
+  }
+
+  public addNewRow() {
+    this.setState({ rows: [...this.state.rows, new RowItem()] });
+  }
+
+  public editModeChanged(isEditing: boolean) {
+    this.state.rows.forEach((row) => row.getLayout().editModeChanged?.(isEditing));
   }
 
   public activateRepeaters() {
     this.state.rows.forEach((row) => {
-      if (row.state.$behaviors) {
-        for (const behavior of row.state.$behaviors) {
-          if (behavior instanceof RowItemRepeaterBehavior && !row.isActive) {
-            row.activate();
-            break;
-          }
+      const behavior = (row.state.$behaviors ?? []).find((b) => b instanceof RowItemRepeaterBehavior);
+
+      if (behavior) {
+        if (!row.isActive) {
+          row.activate();
         }
 
         if (!row.getLayout().isActive) {
           row.getLayout().activate();
         }
+
+        if (!behavior.isActive) {
+          behavior.activate();
+        }
       }
     });
   }
 
-  public getDescriptor(): LayoutRegistryItem {
-    return RowsLayoutManager.getDescriptor();
-  }
-
-  public getSelectedObject() {
-    return sceneGraph.getAncestor(this, DashboardScene).state.editPane.state.selectedObject?.resolve();
+  public removeRow(row: RowItem) {
+    this.setState({ rows: this.state.rows.filter((r) => r !== row) });
   }
 
   public static getDescriptor(): LayoutRegistryItem {
     return {
-      name: 'Rows',
-      description: 'Rows layout',
+      name: t('dashboard.rows-layout.name', 'Rows'),
+      description: t('dashboard.rows-layout.description', 'Rows layout'),
       id: 'rows-layout',
       createFromLayout: RowsLayoutManager.createFromLayout,
     };
   }
 
-  public static createEmpty() {
-    return new RowsLayoutManager({ rows: [] });
+  public static createEmpty(): RowsLayoutManager {
+    return new RowsLayoutManager({ rows: [new RowItem()] });
   }
 
   public static createFromLayout(layout: DashboardLayoutManager): RowsLayoutManager {
@@ -190,7 +175,7 @@ export class RowsLayoutManager extends SceneObjectBase<RowsLayoutManagerState> i
       rows = config.map(
         (rowConfig) =>
           new RowItem({
-            title: rowConfig.title ?? 'Row title',
+            title: rowConfig.title,
             isCollapsed: !!rowConfig.isCollapsed,
             layout: DefaultGridLayoutManager.fromGridItems(
               rowConfig.children,
@@ -201,24 +186,24 @@ export class RowsLayoutManager extends SceneObjectBase<RowsLayoutManagerState> i
           })
       );
     } else {
-      rows = [new RowItem({ layout: layout.clone(), title: 'Row title' })];
+      rows = [new RowItem({ layout: layout.clone() })];
     }
 
     return new RowsLayoutManager({ rows });
   }
+}
 
-  public static Component = ({ model }: SceneComponentProps<RowsLayoutManager>) => {
-    const { rows } = model.useState();
-    const styles = useStyles2(getStyles);
+function RowsLayoutManagerRenderer({ model }: SceneComponentProps<RowsLayoutManager>) {
+  const { rows } = model.useState();
+  const styles = useStyles2(getStyles);
 
-    return (
-      <div className={styles.wrapper}>
-        {rows.map((row) => (
-          <row.Component model={row} key={row.state.key!} />
-        ))}
-      </div>
-    );
-  };
+  return (
+    <div className={styles.wrapper}>
+      {rows.map((row) => (
+        <row.Component model={row} key={row.state.key!} />
+      ))}
+    </div>
+  );
 }
 
 function getStyles(theme: GrafanaTheme2) {

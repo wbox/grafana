@@ -1,4 +1,5 @@
 import { css } from '@emotion/css';
+import { ReactNode } from 'react';
 
 import { GrafanaTheme2 } from '@grafana/data';
 import {
@@ -39,7 +40,7 @@ export class RowActions extends SceneObjectBase<RowActionsState> {
     return getDashboardSceneFor(this);
   }
 
-  public removeRow(removePanels?: boolean) {
+  public removeRow(removePanels?: boolean): void {
     const manager = sceneGraph.getAncestor(this, DefaultGridLayoutManager);
     manager.removeRow(this.getParent(), removePanels);
   }
@@ -74,7 +75,7 @@ export class RowActions extends SceneObjectBase<RowActionsState> {
     }
   };
 
-  public onDelete = () => {
+  public onDelete = (): void => {
     appEvents.publish(
       new ShowConfirmModalEvent({
         title: t('dashboard.default-layout.row-actions.modal.title', 'Delete row'),
@@ -90,7 +91,7 @@ export class RowActions extends SceneObjectBase<RowActionsState> {
     );
   };
 
-  public getWarning = () => {
+  public getWarning = (): ReactNode | undefined => {
     const row = this.getParent();
     const gridItems = row.state.children;
 

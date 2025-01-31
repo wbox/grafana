@@ -251,6 +251,7 @@ function getRowContentHeight(panels: SceneGridItemLike[]): number {
     if (panel.state.y! + panel.state.height! > maxY) {
       maxY = panel.state.y! + panel.state.height!;
     }
+
     if (panel.state.y! < minY) {
       minY = panel.state.y!;
     }
@@ -289,7 +290,7 @@ function updateLayout(layout: SceneGridLayout, rows: SceneGridRow[], maxYOfRows:
   layout.setState({ children: newChildren });
 }
 
-function getLayoutChildrenFilterOutRepeatClones(layout: SceneGridLayout, rowKey: string) {
+function getLayoutChildrenFilterOutRepeatClones(layout: SceneGridLayout, rowKey: string): SceneGridItemLike[] {
   return layout.state.children.filter((child) => !isClonedKeyOf(child.state.key!, rowKey));
 }
 

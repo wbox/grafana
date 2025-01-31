@@ -333,3 +333,15 @@ export function getLayoutManagerFor(sceneObject: SceneObject): DashboardLayoutMa
 export function getGridItemKeyForPanelId(panelId: number): string {
   return `grid-item-${panelId}`;
 }
+
+export function getSelectedObject(layout: DashboardLayoutManager): SceneObject | undefined {
+  return getDashboardSceneFor(layout).state.editPane.state.selectedObject?.resolve();
+}
+
+export function getNextPanelId(layout: DashboardLayoutManager): number {
+  return getDashboardSceneFor(layout).state.body.getMaxPanelId() + 1;
+}
+
+export function switchLayout(layout: DashboardLayoutManager, newLayout: DashboardLayoutManager) {
+  getDashboardSceneFor(layout).switchLayout(newLayout);
+}

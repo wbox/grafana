@@ -258,7 +258,7 @@ export class DashboardScene extends SceneObjectBase<DashboardSceneState> {
     this.setState({ isEditing: true, showHiddenElements: true });
 
     // Propagate change edit mode change to children
-    this.state.body.editModeChanged(true);
+    this.state.body.editModeChanged?.(true);
 
     // Propagate edit mode to scopes
     this._scopesFacade?.enterReadOnly();
@@ -349,7 +349,7 @@ export class DashboardScene extends SceneObjectBase<DashboardSceneState> {
     }
 
     // Disable grid dragging
-    this.state.body.editModeChanged(false);
+    this.state.body.editModeChanged?.(false);
   }
 
   public canDiscard() {
@@ -475,10 +475,6 @@ export class DashboardScene extends SceneObjectBase<DashboardSceneState> {
     return this._initialState;
   }
 
-  public getNextPanelId(): number {
-    return this.state.body.getMaxPanelId() + 1;
-  }
-
   public addPanel(vizPanel: VizPanel): void {
     if (!this.state.isEditing) {
       this.onEnterEditMode();
@@ -502,7 +498,7 @@ export class DashboardScene extends SceneObjectBase<DashboardSceneState> {
   }
 
   public duplicatePanel(vizPanel: VizPanel) {
-    this.state.body.duplicatePanel(vizPanel);
+    this.state.body.duplicatePanel?.(vizPanel);
   }
 
   public copyPanel(vizPanel: VizPanel) {
@@ -536,7 +532,7 @@ export class DashboardScene extends SceneObjectBase<DashboardSceneState> {
   }
 
   public removePanel(panel: VizPanel) {
-    this.state.body.removePanel(panel);
+    this.state.body.removePanel?.(panel);
   }
 
   public unlinkLibraryPanel(panel: VizPanel) {

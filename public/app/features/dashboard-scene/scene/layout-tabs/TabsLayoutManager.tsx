@@ -1,11 +1,10 @@
 import { css } from '@emotion/css';
 
 import { GrafanaTheme2 } from '@grafana/data';
-import { SceneComponentProps, sceneGraph, SceneObjectBase, SceneObjectState, VizPanel } from '@grafana/scenes';
+import { SceneComponentProps, SceneObjectBase, SceneObjectState, VizPanel } from '@grafana/scenes';
 import { TabContent, TabsBar, useStyles2 } from '@grafana/ui';
+import { t } from 'app/core/internationalization';
 
-import { DashboardScene } from '../DashboardScene';
-import { ResponsiveGridLayoutManager } from '../layout-responsive-grid/ResponsiveGridLayoutManager';
 import { DashboardLayoutManager, LayoutRegistryItem } from '../types';
 
 import { TabItem } from './TabItem';
@@ -17,27 +16,75 @@ interface TabsLayoutManagerState extends SceneObjectState {
 }
 
 export class TabsLayoutManager extends SceneObjectBase<TabsLayoutManagerState> implements DashboardLayoutManager {
-  public isDashboardLayoutManager: true = true;
+  public static Component = TabsLayoutManagerRenderer;
 
-  public editModeChanged(isEditing: boolean): void {}
+  public readonly isDashboardLayoutManager = true;
 
-  public addPanel(vizPanel: VizPanel): void {
-    this.state.currentTab.onAddPanel(vizPanel);
+  public getDescriptor(): LayoutRegistryItem {
+    return TabsLayoutManager.getDescriptor();
   }
 
-  public addNewTab(): void {
-    const currentTab = new TabItem({
-      title: 'New tab',
-      layout: ResponsiveGridLayoutManager.createEmpty(),
-    });
+  public addPanel(vizPanel: VizPanel) {
+    this.state.currentTab.getLayout().addPanel(vizPanel);
+  }
 
-    this.setState({
-      tabs: [...this.state.tabs, currentTab],
-      currentTab,
+  public removePanel(panel: VizPanel) {
+    this.state.tabs.forEach((tab) => tab.getLayout().removePanel(panel));
+  }
+
+  public duplicatePanel(panel: VizPanel) {
+    this.state.tabs.forEach((tab) => tab.getLayout().duplicatePanel(panel));
+  }
+
+  public getVizPanels(): VizPanel[] {
+    const panels: VizPanel[] = [];
+
+    for (const tab of this.state.tabs) {
+      const innerPanels = tab.getLayout().getVizPanels();
+      panels.push(...innerPanels);
+    }
+
+    return panels;
+  }
+
+  public getMaxPanelId(): number {
+    return Math.max(...this.state.tabs.map((tab) => tab.getLayout().getMaxPanelId()));
+  }
+
+  public addNewTab() {
+    const currentTab = new TabItem();
+    this.setState({ tabs: [...this.state.tabs, currentTab], currentTab });
+  }
+
+  public addNewRow() {
+    this.state.currentTab.getLayout().addNewRow();
+  }
+
+  public editModeChanged(isEditing: boolean) {
+    this.state.tabs.forEach((tab) => tab.getLayout().editModeChanged?.(isEditing));
+  }
+
+  public activateRepeaters() {
+    this.state.tabs.forEach((tab) => {
+      const behavior = (tab.state.$behaviors ?? []).find((b) => b instanceof TabItemRepeaterBehavior);
+
+      if (behavior) {
+        if (!tab.isActive) {
+          tab.activate();
+        }
+
+        if (!tab.getLayout().isActive) {
+          tab.getLayout().activate();
+        }
+
+        if (!behavior.isActive) {
+          behavior.activate();
+        }
+      }
     });
   }
 
-  public removeTab(tab: TabItem): void {
+  public removeTab(tab: TabItem) {
     if (this.state.tabs.length === 1) {
       throw new Error('TabsLayoutManager: Cannot remove last tab');
     }
@@ -56,109 +103,45 @@ export class TabsLayoutManager extends SceneObjectBase<TabsLayoutManagerState> i
     });
   }
 
-  public changeTab(tab: TabItem): void {
+  public changeTab(tab: TabItem) {
     this.setState({ currentTab: tab });
-  }
-
-  public addNewRow(): void {
-    this.state.currentTab.getLayout().addNewRow();
-  }
-
-  public getMaxPanelId(): number {
-    return Math.max(...this.state.tabs.map((tab) => tab.getLayout().getMaxPanelId()));
-  }
-
-  public getNextPanelId(): number {
-    return 0;
-  }
-
-  public removePanel(panel: VizPanel) {
-    this.state.currentTab.getLayout().removePanel(panel);
-  }
-
-  public duplicatePanel(panel: VizPanel): void {
-    this.state.currentTab.getLayout();
-    throw new Error('Method not implemented.');
-  }
-
-  public getVizPanels(): VizPanel[] {
-    const panels: VizPanel[] = [];
-
-    for (const tab of this.state.tabs) {
-      const innerPanels = tab.getLayout().getVizPanels();
-      panels.push(...innerPanels);
-    }
-
-    return panels;
-  }
-
-  public getOptions() {
-    return [];
-  }
-
-  public activateRepeaters() {
-    this.state.tabs.forEach((tab) => {
-      if (tab.state.$behaviors) {
-        for (const behavior of tab.state.$behaviors) {
-          if (behavior instanceof TabItemRepeaterBehavior && !tab.isActive) {
-            tab.activate();
-            break;
-          }
-        }
-
-        if (!tab.getLayout().isActive) {
-          tab.getLayout().activate();
-        }
-      }
-    });
-  }
-
-  public getDescriptor(): LayoutRegistryItem {
-    return TabsLayoutManager.getDescriptor();
-  }
-
-  public getSelectedObject() {
-    return sceneGraph.getAncestor(this, DashboardScene).state.editPane.state.selectedObject?.resolve();
   }
 
   public static getDescriptor(): LayoutRegistryItem {
     return {
-      name: 'Tabs',
-      description: 'Tabs layout',
+      name: t('dashboard.tabs-layout.name', 'Tabs'),
+      description: t('dashboard.tabs-layout.description', 'Tabs layout'),
       id: 'tabs-layout',
       createFromLayout: TabsLayoutManager.createFromLayout,
     };
   }
 
-  public static createEmpty() {
-    const tab = new TabItem({
-      layout: ResponsiveGridLayoutManager.createEmpty(),
-      title: 'Tab title',
-    });
+  public static createEmpty(): TabsLayoutManager {
+    const tab = new TabItem();
     return new TabsLayoutManager({ tabs: [tab], currentTab: tab });
   }
 
   public static createFromLayout(layout: DashboardLayoutManager): TabsLayoutManager {
-    const tab = new TabItem({ layout: layout.clone(), title: 'Tab title' });
+    const tab = new TabItem({ layout: layout.clone() });
     return new TabsLayoutManager({ tabs: [tab], currentTab: tab });
   }
+}
 
-  public static Component = ({ model }: SceneComponentProps<TabsLayoutManager>) => {
-    const styles = useStyles2(getStyles);
-    const { tabs, currentTab } = model.useState();
-    const { layout } = currentTab.useState();
+function TabsLayoutManagerRenderer({ model }: SceneComponentProps<TabsLayoutManager>) {
+  const styles = useStyles2(getStyles);
+  const { tabs, currentTab } = model.useState();
+  const { layout } = currentTab.useState();
 
-    return (
-      <>
-        <TabsBar className={styles.tabsContainer}>
-          {tabs.map((tab) => (
-            <tab.Component model={tab} key={tab.state.key!} />
-          ))}
-        </TabsBar>
-        <TabContent className={styles.tabContentContainer}>{layout && <layout.Component model={layout} />}</TabContent>
-      </>
-    );
-  };
+  return (
+    <>
+      <TabsBar className={styles.tabsContainer}>
+        {tabs.map((tab) => (
+          <tab.Component model={tab} key={tab.state.key!} />
+        ))}
+      </TabsBar>
+      <TabContent className={styles.tabContentContainer}>{layout && <layout.Component model={layout} />}</TabContent>
+    </>
+  );
 }
 
 const getStyles = (theme: GrafanaTheme2) => ({
