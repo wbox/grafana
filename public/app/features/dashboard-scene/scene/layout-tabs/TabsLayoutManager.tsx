@@ -124,11 +124,27 @@ export class TabsLayoutManager extends SceneObjectBase<TabsLayoutManagerState> i
       return;
     }
 
-    const filteredTab = this.state.tabs.filter((tab) => tab !== tabToRemove);
-    const tabs = filteredTab.length === 0 ? [new TabItem()] : filteredTab;
+    let tabs = this.state.tabs.filter((t) => t !== tabToRemove);
 
-    this.setState({ tabs, currentTabIndex: 0 });
+    // Flag to keep track if we need to fall back to one tab
+    // Useful for emitting events for new object added to canvas
+    let fallbackToOneTab = false;
+
+    if (tabs.length === 0) {
+      fallbackToOneTab = true;
+      tabs.push(new TabItem());
+    }
+
+    let currentTabIndex = tabs.indexOf(currentTab);
+    currentTabIndex = currentTabIndex === -1 ? 0 : currentTabIndex;
+
+    this.setState({ tabs, currentTabIndex });
     this.publishEvent(new ObjectRemovedFromCanvasEvent(tabToRemove), true);
+
+    if (fallbackToOneTab) {
+      // Emit event for new object added to canvas
+      this.publishEvent(new NewObjectAddedToCanvasEvent(tabs[0]), true);
+    }
   }
 
   public addTabBefore(tab: TabItem) {
