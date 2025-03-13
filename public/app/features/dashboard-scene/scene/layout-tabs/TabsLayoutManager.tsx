@@ -7,7 +7,7 @@ import {
 } from '@grafana/scenes';
 import { t } from 'app/core/internationalization';
 
-import { ObjectRemovedFromCanvasEvent } from '../../edit-pane/shared';
+import { NewObjectAddedToCanvasEvent, ObjectRemovedFromCanvasEvent } from '../../edit-pane/shared';
 import { DashboardLayoutManager } from '../types/DashboardLayoutManager';
 import { LayoutRegistryItem } from '../types/LayoutRegistryItem';
 
@@ -108,6 +108,10 @@ export class TabsLayoutManager extends SceneObjectBase<TabsLayoutManagerState> i
   public removeTab(tabToRemove: TabItem) {
     // Do not allow removing last tab (for now)
     if (this.state.tabs.length === 1) {
+      const tab = new TabItem();
+      this.setState({ tabs: [tab], currentTabIndex: 0 });
+      this.publishEvent(new ObjectRemovedFromCanvasEvent(tabToRemove), true);
+      this.publishEvent(new NewObjectAddedToCanvasEvent(tab), true);
       return;
     }
 
