@@ -2,7 +2,6 @@ import { SceneObjectState, SceneObjectBase, sceneGraph, VariableDependencyConfig
 import { t } from 'app/core/internationalization';
 import { OptionsPaneCategoryDescriptor } from 'app/features/dashboard/components/PanelEditor/OptionsPaneCategoryDescriptor';
 
-import { getDefaultVizPanel } from '../../utils/utils';
 import { ResponsiveGridLayoutManager } from '../layout-responsive-grid/ResponsiveGridLayoutManager';
 import { BulkActionElement } from '../types/BulkActionElement';
 import { DashboardLayoutManager } from '../types/DashboardLayoutManager';
@@ -66,34 +65,6 @@ export class TabItem
 
   public createMultiSelectedElement(items: SceneObject[]): TabItems {
     return new TabItems(items.filter((item) => item instanceof TabItem));
-  }
-
-  public onAddPanel(panel = getDefaultVizPanel()) {
-    this.getLayout().addPanel(panel);
-  }
-
-  public onAddTabBefore() {
-    this._getParentLayout().addTabBefore(this);
-  }
-
-  public onAddTabAfter() {
-    this._getParentLayout().addTabAfter(this);
-  }
-
-  public onMoveLeft() {
-    this._getParentLayout().moveTabLeft(this);
-  }
-
-  public onMoveRight() {
-    this._getParentLayout().moveTabRight(this);
-  }
-
-  public isFirstTab(): boolean {
-    return this._getParentLayout().isFirstTab(this);
-  }
-
-  public isLastTab(): boolean {
-    return this._getParentLayout().isLastTab(this);
   }
 
   public onChangeTitle(title: string) {

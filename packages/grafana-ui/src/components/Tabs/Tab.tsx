@@ -59,14 +59,13 @@ export const Tab = React.forwardRef<HTMLElement, TabProps>(
 
     if (href) {
       return (
-        <div className={cx(tabsStyles.item, truncate && tabsStyles.itemTruncate, className)}>
-          <a
-            {...commonProps}
-            href={href}
-            // don't think we can avoid the type assertion here :(
-            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-            ref={ref as React.ForwardedRef<HTMLAnchorElement>}
-          >
+        <div
+          className={cx(tabsStyles.item, truncate && tabsStyles.itemTruncate, className)}
+          // don't think we can avoid the type assertion here :(
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+          ref={ref as React.ForwardedRef<HTMLDivElement>}
+        >
+          <a {...commonProps} href={href}>
             {content()}
           </a>
         </div>
@@ -74,14 +73,13 @@ export const Tab = React.forwardRef<HTMLElement, TabProps>(
     }
 
     return (
-      <div className={cx(tabsStyles.item, truncate && tabsStyles.itemTruncate, className)}>
-        <button
-          {...commonProps}
-          type="button"
-          // don't think we can avoid the type assertion here :(
-          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-          ref={ref as React.ForwardedRef<HTMLButtonElement>}
-        >
+      <div
+        className={cx(tabsStyles.item, truncate && tabsStyles.itemTruncate, className)}
+        // don't think we can avoid the type assertion here :(
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        ref={ref as React.ForwardedRef<HTMLDivElement>}
+      >
+        <button {...commonProps} type="button">
           {content()}
         </button>
       </div>

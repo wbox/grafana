@@ -7,11 +7,7 @@ import {
 } from '@grafana/scenes';
 import { t } from 'app/core/internationalization';
 
-import {
-  NewObjectAddedToCanvasEvent,
-  ObjectRemovedFromCanvasEvent,
-  ObjectsReorderedOnCanvasEvent,
-} from '../../edit-pane/shared';
+import { ObjectRemovedFromCanvasEvent, ObjectsReorderedOnCanvasEvent } from '../../edit-pane/shared';
 import { RowsLayoutManager } from '../layout-rows/RowsLayoutManager';
 import { DashboardLayoutManager } from '../types/DashboardLayoutManager';
 import { LayoutRegistryItem } from '../types/LayoutRegistryItem';
@@ -20,6 +16,7 @@ import { TabItem } from './TabItem';
 import { TabsLayoutManagerRenderer } from './TabsLayoutManagerRenderer';
 
 interface TabsLayoutManagerState extends SceneObjectState {
+  draggedTab: TabItem | undefined;
   tabs: TabItem[];
   currentTabIndex: number;
 }
@@ -49,6 +46,7 @@ export class TabsLayoutManager extends SceneObjectBase<TabsLayoutManagerState> i
   public constructor(state: Partial<TabsLayoutManagerState>) {
     super({
       ...state,
+      draggedTab: undefined,
       tabs: state.tabs ?? [new TabItem()],
       currentTabIndex: state.currentTabIndex ?? 0,
     });
@@ -133,52 +131,29 @@ export class TabsLayoutManager extends SceneObjectBase<TabsLayoutManagerState> i
     this.publishEvent(new ObjectRemovedFromCanvasEvent(tabToRemove), true);
   }
 
-  public addTabBefore(tab: TabItem) {
-    const newTab = new TabItem();
-    const tabs = this.state.tabs.slice();
-    tabs.splice(tabs.indexOf(tab), 0, newTab);
-    this.setState({ tabs, currentTabIndex: this.state.currentTabIndex });
-    this.publishEvent(new NewObjectAddedToCanvasEvent(newTab), true);
+  public startDrag(tab: TabItem) {
+    this.setState({ draggedTab: tab });
   }
 
-  public addTabAfter(tab: TabItem) {
-    const newTab = new TabItem();
-    const tabs = this.state.tabs.slice();
-    tabs.splice(tabs.indexOf(tab) + 1, 0, newTab);
-    this.setState({ tabs, currentTabIndex: this.state.currentTabIndex + 1 });
-    this.publishEvent(new NewObjectAddedToCanvasEvent(newTab), true);
-  }
-
-  public moveTabLeft(tab: TabItem) {
-    const currentIndex = this.state.tabs.indexOf(tab);
-    if (currentIndex <= 0) {
-      return;
-    }
-    const tabs = this.state.tabs.slice();
-    tabs.splice(currentIndex, 1);
-    tabs.splice(currentIndex - 1, 0, tab);
-    this.setState({ tabs, currentTabIndex: this.state.currentTabIndex - 1 });
+  public endDrag() {
+    this.setState({ draggedTab: undefined });
     this.publishEvent(new ObjectsReorderedOnCanvasEvent(this), true);
   }
 
-  public moveTabRight(tab: TabItem) {
-    const currentIndex = this.state.tabs.indexOf(tab);
-    if (currentIndex >= this.state.tabs.length - 1) {
-      return;
-    }
-    const tabs = this.state.tabs.slice();
-    tabs.splice(currentIndex, 1);
-    tabs.splice(currentIndex + 1, 0, tab);
-    this.setState({ tabs, currentTabIndex: this.state.currentTabIndex + 1 });
-    this.publishEvent(new ObjectsReorderedOnCanvasEvent(this), true);
-  }
+  public moveTab(overTab: TabItem) {
+    const tabs = [...this.state.tabs];
 
-  public isFirstTab(tab: TabItem): boolean {
-    return this.state.tabs[0] === tab;
-  }
+    const currentTab = this.state.tabs[this.state.currentTabIndex];
 
-  public isLastTab(tab: TabItem): boolean {
-    return this.state.tabs[this.state.tabs.length - 1] === tab;
+    const draggedTabIndex = tabs.indexOf(this.state.draggedTab!);
+    const overTabIndex = tabs.indexOf(overTab);
+
+    tabs.splice(draggedTabIndex, 1);
+    tabs.splice(overTabIndex, 0, this.state.draggedTab!);
+
+    const currentTabIndex = tabs.indexOf(currentTab);
+
+    this.setState({ tabs, currentTabIndex });
   }
 
   public static createEmpty(): TabsLayoutManager {

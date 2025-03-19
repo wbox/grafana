@@ -1,13 +1,9 @@
 import { css } from '@emotion/css';
-import { Fragment } from 'react';
 
 import { GrafanaTheme2 } from '@grafana/data';
 import { SceneComponentProps } from '@grafana/scenes';
 import { TabContent, TabsBar, useStyles2 } from '@grafana/ui';
 
-import { getDashboardSceneFor } from '../../utils/utils';
-
-import { TabItemMenu } from './TabItemMenu';
 import { TabsLayoutManager } from './TabsLayoutManager';
 
 export function TabsLayoutManagerRenderer({ model }: SceneComponentProps<TabsLayoutManager>) {
@@ -15,22 +11,13 @@ export function TabsLayoutManagerRenderer({ model }: SceneComponentProps<TabsLay
   const { tabs } = model.useState();
   const currentTab = model.getCurrentTab();
   const { layout } = currentTab.useState();
-  const dashboard = getDashboardSceneFor(model);
-  const { isEditing } = dashboard.useState();
 
   return (
     <div className={styles.tabLayoutContainer}>
       <TabsBar className={styles.tabsBar}>
-        <div className={styles.tabsRow}>
-          <div className={styles.tabsContainer}>
-            {tabs.map((tab) => (
-              <Fragment key={tab.state.key!}>
-                <tab.Component model={tab} />
-              </Fragment>
-            ))}
-          </div>
-          {isEditing && <TabItemMenu model={currentTab} />}
-        </div>
+        {tabs.map((tab) => (
+          <tab.Component model={tab} key={tab.state.key!} />
+        ))}
       </TabsBar>
       <TabContent className={styles.tabContentContainer}>
         {currentTab && <layout.Component model={layout} />}

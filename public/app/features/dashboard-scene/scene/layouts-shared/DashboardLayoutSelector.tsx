@@ -30,6 +30,7 @@ export function DashboardLayoutSelector({ layoutManager }: Props) {
           case 'rows-layout':
             return (
               <LayoutRadioButton
+                key={opt.id}
                 label={opt.name}
                 id={opt.id}
                 description={opt.description!}
@@ -53,6 +54,7 @@ export function DashboardLayoutSelector({ layoutManager }: Props) {
           case 'tabs-layout':
             return (
               <LayoutRadioButton
+                key={opt.id}
                 label={opt.name}
                 id={opt.id}
                 description={opt.description!}
@@ -78,6 +80,7 @@ export function DashboardLayoutSelector({ layoutManager }: Props) {
           case 'responsive-grid':
             return (
               <LayoutRadioButton
+                key={opt.id}
                 label={opt.name}
                 id={opt.id}
                 description={opt.description!}
@@ -96,6 +99,7 @@ export function DashboardLayoutSelector({ layoutManager }: Props) {
           default:
             return (
               <LayoutRadioButton
+                key={opt.id}
                 label={opt.name}
                 id={opt.id}
                 description={opt.description!}
