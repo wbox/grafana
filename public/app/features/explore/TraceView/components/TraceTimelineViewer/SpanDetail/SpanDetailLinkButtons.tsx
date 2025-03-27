@@ -32,38 +32,37 @@ export type Props = {
 
 export const getSpanDetailLinkButtons = (props: Props) => {
   const { span, createSpanLink, traceToProfilesOptions, timeRange, datasourceType, app } = props;
+  const links = createSpanLink?.(span) ?? [];
 
   let logLinkButton: JSX.Element | null = null;
   let profileLinkButton: JSX.Element | null = null;
   let sessionLinkButton: JSX.Element | null = null;
-  if (createSpanLink) {
-    const links = createSpanLink(span);
-    const logsLink = links?.filter((link) => link.type === SpanLinkType.Logs);
-    if (links && logsLink && logsLink.length > 0) {
-      logLinkButton = createLinkButton(logsLink[0], SpanLinkType.Logs, 'Logs for this span', 'gf-logs', datasourceType);
-    }
-    const profilesLink = links?.filter(
-      (link) => link.type === SpanLinkType.Profiles && link.title === RelatedProfilesTitle
+
+  const logsLink = links.find((link) => link.type === SpanLinkType.Logs);
+  if (logsLink) {
+    logLinkButton = createLinkButton(logsLink, SpanLinkType.Logs, 'Logs for this span', 'gf-logs', datasourceType);
+  }
+
+  const profilesLink = links.find((link) => link.type === SpanLinkType.Profiles && link.title === RelatedProfilesTitle);
+  if (profilesLink) {
+    profileLinkButton = createLinkButton(
+      profilesLink,
+      SpanLinkType.Profiles,
+      'Profiles for this span',
+      'link',
+      datasourceType
     );
-    if (links && profilesLink && profilesLink.length > 0) {
-      profileLinkButton = createLinkButton(
-        profilesLink[0],
-        SpanLinkType.Profiles,
-        'Profiles for this span',
-        'link',
-        datasourceType
-      );
-    }
-    const sessionLink = links?.filter((link) => link.type === SpanLinkType.Session);
-    if (links && sessionLink && sessionLink.length > 0) {
-      sessionLinkButton = createLinkButton(
-        sessionLink[0],
-        SpanLinkType.Session,
-        'Session for this span',
-        'frontend-observability',
-        datasourceType
-      );
-    }
+  }
+
+  const sessionLink = links.find((link) => link.type === SpanLinkType.Session);
+  if (sessionLink) {
+    sessionLinkButton = createLinkButton(
+      sessionLink,
+      SpanLinkType.Session,
+      'Session for this span',
+      'frontend-observability',
+      datasourceType
+    );
   }
 
   let profileLinkButtons = profileLinkButton;
@@ -114,7 +113,7 @@ export const getSpanDetailLinkButtons = (props: Props) => {
     }
   }
 
-  return { profileLinkButtons, logLinkButton, sessionLinkButton };
+  return { profileLinkButtons, logLinkButton, sessionLinkButton, links };
 };
 
 export const getProfileLinkButtonsContext = (
