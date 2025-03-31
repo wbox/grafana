@@ -93,7 +93,9 @@ export const exploreDataLinkPostProcessorFactory = (
   return exploreDataLinkPostProcessor;
 };
 
-// TODO: Doc
+/**
+ * Extracts the resource attributes from the list of variables
+ */
 const getResourceAttributes = (variables: VariableInterpolation[]) => {
   const pattern = /^tags\["([^"]+)"\]$/;
 

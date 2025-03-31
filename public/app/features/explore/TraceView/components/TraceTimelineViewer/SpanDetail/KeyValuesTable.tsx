@@ -25,7 +25,7 @@ import CopyIcon from '../../common/CopyIcon';
 import { SpanLinkDef } from '../../types';
 
 import jsonMarkup from './jsonMarkup';
-import { getBestLinkByAttribute } from './span-utils';
+import { getMostRelevantLinkByAttribute } from './span-utils';
 
 const copyIconClassName = 'copyIcon';
 
@@ -129,8 +129,8 @@ export default function KeyValuesTable(props: KeyValuesTableProps) {
               __html: jsonMarkup(parseIfComplexJson(row.value)),
             };
             const jsonTable = <div className={styles.jsonTable} dangerouslySetInnerHTML={markup} />;
-            const keyLink = getBestLinkByAttribute(row.key, links);
-            const valueMarkup = keyLink ? <Link href={keyLink.href}>{jsonTable}</Link> : jsonTable;
+            const link = getMostRelevantLinkByAttribute(row.key, links);
+            const valueMarkup = link ? <Link href={link.href}>{jsonTable}</Link> : jsonTable;
 
             return (
               // `i` is necessary in the key because row.key can repeat

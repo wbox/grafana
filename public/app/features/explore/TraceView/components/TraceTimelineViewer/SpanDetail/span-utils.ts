@@ -1,8 +1,11 @@
 import { SpanLinkDef } from '../../types';
 
-// TODO: Explain how we determine best link
-// TODO: Naming alternative getMostRelevantLinkByAttribute
-export const getBestLinkByAttribute = (attribute: string, links: SpanLinkDef[] = []) => {
+/**
+ * Returns the most relevant link for the given attribute.
+ * The most relevant link is the link with the attribute closest to the end of its array.
+ * The closer to the end of the url the more specific the attribute is.
+ */
+export const getMostRelevantLinkByAttribute = (attribute: string, links: SpanLinkDef[] = []) => {
   // Find the link with the attribute closest to the end of its array
   let bestLinkIndex = -1;
   let smallestDistanceFromEnd = Infinity;
@@ -25,8 +28,4 @@ export const getBestLinkByAttribute = (attribute: string, links: SpanLinkDef[] =
 
   // Return the best link or undefined if no links have the attribute
   return bestLinkIndex !== -1 ? links[bestLinkIndex] : undefined;
-};
-
-export const getLinksByAttribute = (attribute: string, links: SpanLinkDef[]) => {
-  return links.filter((link) => link.resourceAttributes?.includes(attribute));
 };
