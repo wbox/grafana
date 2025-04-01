@@ -28,6 +28,7 @@ import (
 	"github.com/grafana/grafana/pkg/plugins/manager/registry"
 	"github.com/grafana/grafana/pkg/plugins/manager/signature"
 	"github.com/grafana/grafana/pkg/plugins/manager/sources"
+	"github.com/grafana/grafana/pkg/plugins/mtplugins"
 	"github.com/grafana/grafana/pkg/plugins/pluginscdn"
 	"github.com/grafana/grafana/pkg/plugins/repo"
 	"github.com/grafana/grafana/pkg/services/caching"
@@ -129,6 +130,8 @@ var WireSet = wire.NewSet(
 	pluginassets.ProvideService,
 	plugininstaller.ProvidePreinstall,
 	wire.Bind(new(plugininstaller.Preinstall), new(*plugininstaller.PreinstallImpl)),
+	mtplugins.ProvideService,
+	wire.Bind(new(mtplugins.Registry), new(*mtplugins.Service)),
 )
 
 // WireExtensionSet provides a wire.ProviderSet of plugin providers that can be

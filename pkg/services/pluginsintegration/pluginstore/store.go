@@ -2,6 +2,7 @@ package pluginstore
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"sync"
 	"time"
@@ -11,12 +12,17 @@ import (
 	"github.com/grafana/grafana/pkg/plugins/manager/loader"
 	"github.com/grafana/grafana/pkg/plugins/manager/registry"
 	"github.com/grafana/grafana/pkg/plugins/manager/sources"
+	"github.com/grafana/grafana/pkg/plugins/mtplugins"
 )
 
 var _ Store = (*Service)(nil)
 
 // Store is the publicly accessible storage for plugins.
 type Store interface {
+	// EnablePlugin enables a plugin by its ID.
+	EnablePlugin(ctx context.Context, p plugins.FoundPlugin) error
+	// DisablePlugin disables a plugin by its ID.
+	DisablePlugin(ctx context.Context, pluginID string) error
 	// Plugin finds a plugin by its ID.
 	// Note: version is not required since Grafana only supports single versions of a plugin.
 	Plugin(ctx context.Context, pluginID string) (Plugin, bool)
@@ -27,10 +33,11 @@ type Store interface {
 type Service struct {
 	pluginRegistry registry.Service
 	pluginLoader   loader.Service
+	mtPluginStore  mtplugins.Registry
 }
 
 func ProvideService(pluginRegistry registry.Service, pluginSources sources.Registry,
-	pluginLoader loader.Service) (*Service, error) {
+	pluginLoader loader.Service, mtPluginStore mtplugins.Registry) (*Service, error) {
 	ctx := context.Background()
 	start := time.Now()
 	totalPlugins := 0
@@ -49,7 +56,7 @@ func ProvideService(pluginRegistry registry.Service, pluginSources sources.Regis
 
 	logger.Info("Plugins loaded", "count", totalPlugins, "duration", time.Since(start))
 
-	return New(pluginRegistry, pluginLoader), nil
+	return New(pluginRegistry, pluginLoader, mtPluginStore), nil
 }
 
 func (s *Service) Run(ctx context.Context) error {
@@ -58,10 +65,11 @@ func (s *Service) Run(ctx context.Context) error {
 	return ctx.Err()
 }
 
-func New(pluginRegistry registry.Service, pluginLoader loader.Service) *Service {
+func New(pluginRegistry registry.Service, pluginLoader loader.Service, mtPluginStore mtplugins.Registry) *Service {
 	return &Service{
 		pluginRegistry: pluginRegistry,
 		pluginLoader:   pluginLoader,
+		mtPluginStore:  mtPluginStore,
 	}
 }
 
@@ -92,6 +100,38 @@ func (s *Service) Plugins(ctx context.Context, pluginTypes ...plugins.Type) []Pl
 		}
 	}
 	return pluginsList
+}
+
+func (s *Service) EnablePlugin(ctx context.Context, p plugins.FoundPlugin) error {
+	mtPlugin, exists := s.mtPluginStore.GetPlugin(ctx, p.JSONData.ID)
+	if !exists {
+		return fmt.Errorf("plugin %s not found", p.JSONData.ID)
+	}
+
+	err := s.pluginRegistry.Add(ctx, &plugins.Plugin{
+		JSONData:      p.JSONData,
+		Class:         plugins.ClassExternal,
+		FS:            p.FS,
+		Signature:     plugins.SignatureStatusValid,
+		SignatureType: plugins.SignatureTypeGrafana,
+		SignatureOrg:  p.JSONData.Info.Author.Name,
+		BaseURL:       mtPlugin.URL,
+		Module:        fmt.Sprintf("%s/module.js", mtPlugin.URL),
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Service) DisablePlugin(ctx context.Context, pluginID string) error {
+	plugin, exists := s.mtPluginStore.GetPlugin(ctx, pluginID)
+	if !exists {
+		return fmt.Errorf("plugin %s not found", pluginID)
+	}
+
+	return s.pluginRegistry.Remove(ctx, plugin.ID, plugin.Version)
 }
 
 // plugin finds a plugin with `pluginID` from the registry that is not decommissioned

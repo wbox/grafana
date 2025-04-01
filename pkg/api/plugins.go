@@ -248,6 +248,43 @@ func (hs *HTTPServer) GetPluginSettingByID(c *contextmodel.ReqContext) response.
 	return response.JSON(http.StatusOK, dto)
 }
 
+func (hs *HTTPServer) EnablePlugin(c *contextmodel.ReqContext) response.Response {
+	pluginID := web.Params(c.Req)[":pluginId"]
+
+	_, exists := hs.pluginStore.Plugin(c.Req.Context(), pluginID)
+	if exists {
+		return response.Error(http.StatusConflict, "Plugin already installed", nil)
+	}
+
+	mtPlugin, err := hs.mtPluginStore.FindPlugin(c.Req.Context(), pluginID)
+	if err != nil {
+		return response.Error(http.StatusInternalServerError, "Failed to get mtplugins service", err)
+	}
+
+	err = hs.pluginStore.EnablePlugin(c.Req.Context(), *mtPlugin)
+	if err != nil {
+		return response.Error(http.StatusInternalServerError, "Failed to enable plugin", err)
+	}
+
+	return response.JSON(http.StatusOK, []byte{})
+}
+
+func (hs *HTTPServer) DisablePlugin(c *contextmodel.ReqContext) response.Response {
+	pluginID := web.Params(c.Req)[":pluginId"]
+
+	_, exists := hs.pluginStore.Plugin(c.Req.Context(), pluginID)
+	if !exists {
+		return response.Error(http.StatusNotFound, "Plugin not installed", nil)
+	}
+
+	err := hs.pluginStore.DisablePlugin(c.Req.Context(), pluginID)
+	if err != nil {
+		return response.Error(http.StatusInternalServerError, "Failed to disable plugin", err)
+	}
+
+	return response.JSON(http.StatusOK, []byte{})
+}
+
 func (hs *HTTPServer) UpdatePluginSetting(c *contextmodel.ReqContext) response.Response {
 	cmd := pluginsettings.UpdatePluginSettingCmd{}
 	if err := web.Bind(c.Req, &cmd); err != nil {
