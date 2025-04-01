@@ -13,6 +13,9 @@
 // limitations under the License.
 
 import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom-v5-compat';
+
+import { SpanLinkDef } from '../../types';
 
 import KeyValuesTable, { LinkValue, KeyValuesTableProps } from './KeyValuesTable';
 
@@ -28,7 +31,11 @@ const setup = (propOverrides?: Partial<KeyValuesTableProps>) => {
     data: data,
     ...propOverrides,
   };
-  return render(<KeyValuesTable {...(props as KeyValuesTableProps)} />);
+  return render(
+    <MemoryRouter>
+      <KeyValuesTable {...(props as KeyValuesTableProps)} />
+    </MemoryRouter>
+  );
 };
 
 describe('LinkValue', () => {
@@ -65,6 +72,23 @@ describe('KeyValuesTable tests', () => {
     expect(screen.getAllByTestId('KeyValueTable--keyColumn')).toHaveLength(4);
     expect(screen.getByRole('row', { name: 'span.kind "client"' })).toBeInTheDocument();
     expect(screen.getByRole('row', { name: 'jsonkey { "hello": "world" }' })).toBeInTheDocument();
+  });
+
+  it('renders the most relevant link for the attribute', () => {
+    setup({
+      links: [
+        { href: 'https://example.com/omg', resourceAttributes: ['span.kind', 'omg'] } as unknown as SpanLinkDef,
+        { href: 'https://example.com/span-kind', resourceAttributes: ['span.kind'] } as unknown as SpanLinkDef,
+      ],
+    });
+
+    const omgLink = screen.getByRole('link', { name: '"mos-def"' });
+    expect(omgLink.tagName).toBe('A');
+    expect(omgLink.attributes.getNamedItem('href')?.value).toBe('https://example.com/omg');
+
+    const spanKindLink = screen.getByRole('link', { name: '"client"' });
+    expect(spanKindLink.tagName).toBe('A');
+    expect(spanKindLink.attributes.getNamedItem('href')?.value).toBe('https://example.com/span-kind');
   });
 
   it('renders a <CopyIcon /> for each data element', () => {

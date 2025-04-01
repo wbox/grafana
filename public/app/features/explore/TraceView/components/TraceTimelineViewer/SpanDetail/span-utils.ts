@@ -9,8 +9,10 @@ export const getMostRelevantLinkByAttribute = (attribute: string, links: SpanLin
   // Find the link with the attribute closest to the end of its array
   let bestLinkIndex = -1;
   let smallestDistanceFromEnd = Infinity;
+  // Sort links by the number of resource attributes in descending order
+  const sortedLinks = links.sort((a, b) => (b.resourceAttributes ?? []).length - (a.resourceAttributes ?? []).length);
 
-  links.forEach((link, linkIndex) => {
+  sortedLinks.forEach((link, linkIndex) => {
     const resourceAttributes = link.resourceAttributes ?? [];
     const attributeIndex = resourceAttributes.lastIndexOf(attribute);
 
