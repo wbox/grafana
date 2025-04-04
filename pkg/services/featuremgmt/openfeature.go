@@ -1,6 +1,7 @@
 package featuremgmt
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/grafana/grafana/pkg/setting"
@@ -16,8 +17,10 @@ const (
 )
 
 type OpenFeatureService struct {
-	provider openfeature.FeatureProvider
-	Client   openfeature.IClient
+	ProviderType string
+	URL          string
+	Client       openfeature.IClient
+	provider     openfeature.FeatureProvider
 }
 
 func ProvideOpenFeatureService(cfg *setting.Cfg) (*OpenFeatureService, error) {
@@ -48,8 +51,10 @@ func ProvideOpenFeatureService(cfg *setting.Cfg) (*OpenFeatureService, error) {
 	client := openfeature.NewClient("grafana-openfeature-client")
 
 	return &OpenFeatureService{
-		provider: provider,
-		Client:   client,
+		URL:          url,
+		ProviderType: provType,
+		Client:       client,
+		provider:     provider,
 	}, nil
 }
 
@@ -68,4 +73,31 @@ func ctxAttrs(cfg *setting.Cfg) map[string]any {
 	}
 
 	return attrs
+}
+
+func (s *OpenFeatureService) EvalFlag(ctx context.Context, flagKey string) (openfeature.BooleanEvaluationDetails, error) {
+	result, err := s.Client.BooleanValueDetails(ctx, flagKey, false, openfeature.TransactionContext(ctx))
+	if err != nil {
+		return openfeature.BooleanEvaluationDetails{}, fmt.Errorf("failed to evaluate flag %s: %w", flagKey, err)
+	}
+
+	return result, nil
+}
+
+func (s *OpenFeatureService) EvalAllFlags(ctx context.Context) (AllFlagsGOFFResp, error) {
+	if s.ProviderType != goffProviderType {
+		// TODO: evaluate static provider flags
+	}
+	return AllFlagsGOFFResp{}, nil
+}
+
+type AllFlagsGOFFResp struct {
+	Flags map[string]*FlagGOFF `json:"flags"`
+}
+
+type FlagGOFF struct {
+	VariationType string `json:"variationType"`
+	Timestamp     int    `json:"timestamp"`
+	TrackEvents   bool   `json:"trackEvents"`
+	Value         bool   `json:"value"`
 }
