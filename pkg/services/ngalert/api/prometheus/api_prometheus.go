@@ -632,7 +632,6 @@ func toRuleGroup(log log.Logger, groupKey ngmodels.AlertRuleGroupKey, folderFull
 
 	ngmodels.RulesGroup(rules).SortByGroupIndex()
 	for _, rule := range rules {
-
 		alertingRule := apimodels.AlertingRule{
 			State:         "inactive",
 			Name:          rule.Title,
