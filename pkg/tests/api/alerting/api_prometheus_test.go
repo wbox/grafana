@@ -259,6 +259,7 @@ func TestIntegrationPrometheusRules(t *testing.T) {
 					"label1": "val1"
 				},
 				"health": "ok",
+				"isPaused": false,
 				"type": "alerting",
 				"lastEvaluation": "0001-01-01T00:00:00Z",
 				"evaluationTime": 0
