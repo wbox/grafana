@@ -269,6 +269,7 @@ func TestIntegrationPrometheusRules(t *testing.T) {
 				"folderUid": "default",
 				"uid": "%s",
 				"health": "ok",
+				"isPaused": false,
 				"type": "alerting",
 				"lastEvaluation": "0001-01-01T00:00:00Z",
 				"evaluationTime": 0
@@ -322,6 +323,7 @@ func TestIntegrationPrometheusRules(t *testing.T) {
 					"label1": "val1"
 				},
 				"health": "ok",
+				"isPaused": false,
 				"type": "alerting",
 				"lastEvaluation": "0001-01-01T00:00:00Z",
 				"evaluationTime": 0
@@ -332,6 +334,7 @@ func TestIntegrationPrometheusRules(t *testing.T) {
 				"folderUid": "default",
 				"uid": "%s",
 				"health": "ok",
+				"isPaused": false,
 				"type": "alerting",
 				"lastEvaluation": "0001-01-01T00:00:00Z",
 				"evaluationTime": 0
@@ -482,6 +485,7 @@ func TestIntegrationPrometheusRulesFilterByDashboard(t *testing.T) {
 					"__panelId__": "1"
 				},
 				"health": "ok",
+				"isPaused": false,
 				"type": "alerting",
 				"lastEvaluation": "0001-01-01T00:00:00Z",
 				"evaluationTime": 0
@@ -492,6 +496,7 @@ func TestIntegrationPrometheusRulesFilterByDashboard(t *testing.T) {
 				"folderUid": "default",
 				"query": "[{\"refId\":\"A\",\"queryType\":\"\",\"relativeTimeRange\":{\"from\":18000,\"to\":10800},\"datasourceUid\":\"__expr__\",\"model\":{\"expression\":\"2 + 3 \\u003e 1\",\"intervalMs\":1000,\"maxDataPoints\":43200,\"type\":\"math\"}}]",
 				"health": "ok",
+				"isPaused": false,
 				"type": "alerting",
 				"lastEvaluation": "0001-01-01T00:00:00Z",
 				"evaluationTime": 0
@@ -529,6 +534,7 @@ func TestIntegrationPrometheusRulesFilterByDashboard(t *testing.T) {
 					"__panelId__": "1"
 				},
 				"health": "ok",
+				"isPaused": false,
 				"type": "alerting",
 				"lastEvaluation": "0001-01-01T00:00:00Z",
 				"evaluationTime": 0
