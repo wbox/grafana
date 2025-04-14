@@ -153,7 +153,7 @@ func Test_SQLKeeperSetup(t *testing.T) {
 	})
 }
 
-func setupTestService(t *testing.T, cfg *setting.Cfg) (*SQLKeeper, error) {
+func setupTestService(t *testing.T, cfg *setting.Cfg) (*SQLKeeper, error) 
 	testDB := db.InitTestDB(t)
 
 	features := featuremgmt.WithFeatures(featuremgmt.FlagGrafanaAPIServerWithExperimentalAPIs, featuremgmt.FlagSecretsManagementAppPlatform)
@@ -178,7 +178,7 @@ func setupTestService(t *testing.T, cfg *setting.Cfg) (*SQLKeeper, error) {
 	require.NoError(t, err)
 
 	// Initialize the SQLKeeper
-	sqlKeeper, err := NewSQLKeeper(tracing.InitializeTracerForTest(), encMgr, encValueStore)
+	sqlKeeper := NewSQLKeeper(tracing.InitializeTracerForTest(), encMgr, encValueStore)
 
-	return sqlKeeper, err
-}
+	return sqlKeeper, nil
+
