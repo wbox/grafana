@@ -15,7 +15,7 @@ import {
   useSceneObjectState,
   SceneGridLayoutDragStartEvent,
 } from '@grafana/scenes';
-import { DashboardV2Spec } from '@grafana/schema/dist/esm/schema/dashboard/v2alpha0';
+import { Spec as DashboardV2Spec } from '@grafana/schema/dist/esm/schema/dashboard/v2alpha1/types.spec.gen';
 import { useStyles2 } from '@grafana/ui';
 import { GRID_COLUMN_COUNT } from 'app/core/constants';
 import { t } from 'app/core/internationalization';
@@ -27,7 +27,7 @@ import {
   ObjectsReorderedOnCanvasEvent,
 } from '../../edit-pane/shared';
 import { serializeDefaultGridLayout } from '../../serialization/layoutSerializers/DefaultGridLayoutSerializer';
-import { isClonedKey, joinCloneKeys } from '../../utils/clone';
+import { isClonedKey, joinCloneKeys, useHasClonedParents } from '../../utils/clone';
 import { dashboardSceneGraph } from '../../utils/dashboardSceneGraph';
 import {
   forceRenderChildren,
@@ -38,8 +38,10 @@ import {
   getGridItemKeyForPanelId,
   useDashboard,
   getLayoutOrchestratorFor,
+  getDashboardSceneFor,
 } from '../../utils/utils';
 import { CanvasGridAddActions } from '../layouts-shared/CanvasGridAddActions';
+import { clearClipboard, getDashboardGridItemFromClipboard } from '../layouts-shared/paste';
 import { DashboardLayoutManager } from '../types/DashboardLayoutManager';
 import { LayoutRegistryItem } from '../types/LayoutRegistryItem';
 
@@ -70,6 +72,7 @@ export class DefaultGridLayoutManager
     id: 'GridLayout',
     createFromLayout: DefaultGridLayoutManager.createFromLayout,
     isGridLayout: true,
+    icon: 'window-grid',
   };
 
   public serialize(): DashboardV2Spec['layout'] {
@@ -132,6 +135,14 @@ export class DefaultGridLayoutManager
     }
 
     this.publishEvent(new NewObjectAddedToCanvasEvent(vizPanel), true);
+  }
+
+  public pastePanel() {
+    const emptySpace = findSpaceForNewPanel(this.state.grid);
+    const panel = getDashboardGridItemFromClipboard(getDashboardSceneFor(this), emptySpace);
+    this.state.grid.setState({ children: [...this.state.grid.state.children, panel] });
+    this.publishEvent(new NewObjectAddedToCanvasEvent(panel), true);
+    clearClipboard();
   }
 
   public removePanel(panel: VizPanel) {
@@ -218,22 +229,35 @@ export class DefaultGridLayoutManager
   }
 
   public duplicate(): DashboardLayoutManager {
+    const children = this.state.grid.state.children;
+    const hasGridItem = children.find((child) => child instanceof DashboardGridItem);
+    const clonedChildren: SceneGridItemLike[] = [];
+
+    if (children.length) {
+      let panelId = hasGridItem ? dashboardSceneGraph.getNextPanelId(hasGridItem.state.body) : 1;
+
+      children.forEach((child) => {
+        if (child instanceof DashboardGridItem) {
+          const clone = child.clone({
+            key: undefined,
+            body: child.state.body.clone({
+              key: getVizPanelKeyForPanelId(panelId),
+            }),
+          });
+
+          clonedChildren.push(clone);
+          panelId++;
+        } else {
+          clonedChildren.push(child.clone({ key: undefined }));
+        }
+      });
+    }
+
     const clone = this.clone({
       key: undefined,
       grid: this.state.grid.clone({
         key: undefined,
-        children: this.state.grid.state.children.map((child) => {
-          if (child instanceof DashboardGridItem) {
-            return child.clone({
-              key: undefined,
-              body: child.state.body.clone({
-                key: getVizPanelKeyForPanelId(dashboardSceneGraph.getNextPanelId(child.state.body)),
-              }),
-            });
-          }
-
-          return child.clone({ key: undefined });
-        }),
+        children: clonedChildren,
       }),
     });
 
@@ -522,7 +546,9 @@ function DefaultGridLayoutManagerRenderer({ model }: SceneComponentProps<Default
   const { children } = useSceneObjectState(model.state.grid, { shouldActivateOrKeepAlive: true });
   const dashboard = useDashboard(model);
   const { isEditing } = dashboard.useState();
+  const hasClonedParents = useHasClonedParents(model);
   const styles = useStyles2(getStyles);
+  const showCanvasActions = isEditing && config.featureToggles.dashboardNewLayouts && !hasClonedParents;
 
   // If we are top level layout and we have no children, show empty state
   if (model.parent === dashboard && children.length === 0) {
@@ -534,7 +560,7 @@ function DefaultGridLayoutManagerRenderer({ model }: SceneComponentProps<Default
   return (
     <div className={cx(styles.container, isEditing && styles.containerEditing)}>
       {model.state.grid.Component && <model.state.grid.Component model={model.state.grid} />}
-      {isEditing && (
+      {showCanvasActions && (
         <div className={styles.actionsWrapper}>
           <CanvasGridAddActions layoutManager={model} />
         </div>
