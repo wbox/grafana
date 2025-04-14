@@ -1782,6 +1782,13 @@ var (
 			Owner:        grafanaObservabilityTracesAndProfilingSquad,
 			FrontendOnly: true,
 		},
+		{
+			Name:         "pluginsAutoUpdate",
+			Description:  "Enables auto-updating of users installed plugins",
+			Stage:        FeatureStageExperimental,
+			FrontendOnly: false,
+			Owner:        grafanaPluginsPlatformSquad,
+		},
 	}
 )
 
